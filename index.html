@@ -384,7 +384,8 @@ async function startNewBox(){
     '<div class="ov-head"><button class="ov-back" id="ovBack" aria-label="Back">‹</button>'
     +'<div class="ov-id mono" id="ovId">① Barcode</div>'
     +'<span class="ov-count" id="camCount">0 / 3</span></div>'
-    +'<div class="cam-stage" id="camStage"><video id="camVideo" autoplay playsinline muted></video><div class="cam-reticle" id="camRet"></div></div>'
+    +'<div class="cam-stage" id="camStage"><video id="camVideo" autoplay playsinline muted></video><div class="cam-reticle" id="camRet"></div>'
+    +'<div class="zoom-ctl" id="zoomCtl" hidden><button id="zoomOut" aria-label="Zoom out">–</button><span id="zoomVal">1.0×</span><button id="zoomIn" aria-label="Zoom in">+</button></div></div>'
     +'<div class="cam-strip" id="camStrip"></div>'
     +'<div class="cam-hint" id="camHint"></div>'
     +'<div class="cam-bar" id="camBar"></div>';
@@ -402,7 +403,21 @@ function getUM(){ const F=[{focusMode:'continuous'}]; const g=c=>navigator.media
 function setupCam(){ try{ const t=stream.getVideoTracks()[0];
   try{ t.applyConstraints({advanced:[{focusMode:'continuous'}]}); }catch(e){}
   const caps=(t.getCapabilities&&t.getCapabilities())||{};
-  if(caps.zoom&&(caps.zoom.max||1)>=2){ try{ t.applyConstraints({advanced:[{zoom:Math.min(caps.zoom.max,2)}]}); }catch(e){} } }catch(e){} }
+  if(caps.zoom && (caps.zoom.max||1)>(caps.zoom.min||1)){
+    const zc=$('#zoomCtl'); if(zc) zc.hidden=false;
+    const zmin=caps.zoom.min||1, zmax=caps.zoom.max||1, zstep=caps.zoom.step||0.1;
+    let z=Math.min(zmax,Math.max(zmin,2));
+    const apply=()=>{ try{ t.applyConstraints({advanced:[{zoom:z}]}); }catch(e){} const zv=$('#zoomVal'); if(zv) zv.textContent=z.toFixed(1)+'×'; };
+    apply();
+    const zi=$('#zoomIn'),zo=$('#zoomOut');
+    if(zi) zi.onclick=()=>{ z=Math.min(zmax,z+Math.max(zstep,0.5)); apply(); };
+    if(zo) zo.onclick=()=>{ z=Math.max(zmin,z-Math.max(zstep,0.5)); apply(); };
+  } }catch(e){} }
+async function grabStill(maxSide){
+  const track=stream && stream.getVideoTracks()[0];
+  if(window.ImageCapture && track){ try{ const ic=new ImageCapture(track); const blob=await ic.takePhoto(); return await fileToCanvas(blob,maxSide); }catch(e){} }
+  return grabFrameCanvas(maxSide);   // fallback: video frame
+}
 function tapFocus(){ try{ const t=stream&&stream.getVideoTracks()[0]; if(!t) return;
   t.applyConstraints({advanced:[{focusMode:'single-shot'}]}).then(()=>setTimeout(()=>{ try{t.applyConstraints({advanced:[{focusMode:'continuous'}]});}catch(e){} },1200)).catch(()=>{}); }catch(e){} }
 function grabFrameCanvas(maxSide){ const v=$('#camVideo'); const w=v.videoWidth||1280,h=v.videoHeight||720; const s=Math.min(1,maxSide/Math.max(w,h));
@@ -412,18 +427,19 @@ async function capture(){
   if(busy||!stream||!cap) return; busy=true; const btn=$('#capBtn'); if(btn) btn.disabled=true;
   const hint=$('#camHint'); const prev=hint?hint.textContent:''; if(hint) hint.textContent='Reading… / Leyendo…';
   try{
-    const cv=grabFrameCanvas(1600);
-    if(!cap.box){                                    // identify from the barcode frame
+    if(!cap.box){                                    // barcode photo ① (identify)
+      const cv=await grabStill(1600);
       const text=await decodeCanvas(cv); const hit=text?matchBox(text):null;
-      if(!hit){ toast(text?('Not in list / No en la lista: '+String(text).replace(/\s+/g,'').slice(-9)):'No barcode — tap the barcode to focus, then Capture / Sin código',true);
+      if(!hit){ toast(text?('Not in list / No en la lista: '+String(text).replace(/\s+/g,'').slice(-9)):'No barcode — hold ~25 cm, zoom in, then Capture / Sin código',true);
         if(hint) hint.textContent=prev; busy=false; if(btn) btn.disabled=false; return; }
       if(isDone(hit)){ if(hint) hint.textContent=prev; busy=false; if(btn) btn.disabled=false;
         confirmModal('Already done / Ya completada', fmtId(hit.last9)+' already has 3 photos. Retake? / ¿Repetir?','Retake / Repetir',true,async()=>{
           for(const p of hit.photos) pDrop(p); hit.photos=[null,null,null]; try{await dbPut(hit);}catch(e){} await assignFirst(hit,cv); }); return; }
       await assignFirst(hit,cv);
-    } else {                                         // photo 2 / 3
+    } else {                                         // photos ② ③ — higher quality still
       const slot=firstEmpty(cap.box); if(slot<0){ busy=false; if(btn) btn.disabled=false; return; }
-      const comp=await canvasToPhoto(cv,0.72); cap.photos[slot]={blob:comp.blob,w:comp.w,h:comp.h,ts:Date.now()}; cap.box.photos[slot]=cap.photos[slot];
+      const cv=await grabStill(2000);
+      const comp=await canvasToPhoto(cv,0.82); cap.photos[slot]={blob:comp.blob,w:comp.w,h:comp.h,ts:Date.now()}; cap.box.photos[slot]=cap.photos[slot];
       try{await dbPut(cap.box);}catch(e){} renderStrip(); updateHead();
       if(isDone(cap.box)) toast('✓ '+fmtId(cap.box.last9)+' — done / listo');
     }
