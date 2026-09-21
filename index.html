@@ -198,6 +198,33 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:6px 16px 40
 .zoom-ctl{position:absolute;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 74px);display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.5);border-radius:999px;padding:6px 10px}
 .zoom-ctl button{width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.92);color:#111;font-size:22px;font-weight:700;line-height:1;display:flex;align-items:center;justify-content:center}
 .zoom-ctl span{color:#fff;font-family:var(--mono);font-size:13px;min-width:40px;text-align:center}
+.scan-foot{background:#15181d;padding:14px 16px calc(env(safe-area-inset-bottom,0px) + 16px);display:flex;justify-content:center}
+.scan-cap{width:100%;max-width:420px;height:60px;border-radius:14px;border:0;background:#fff;color:#111;font-weight:800;font-size:18px}
+.scan-cap:active{transform:scale(.99)}
+.newbox{padding:12px 16px 4px}
+.newbox-btn{width:100%;height:62px;border-radius:14px;border:0;background:var(--primary);color:var(--primary-ink);font-weight:800;font-size:17px;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:var(--shadow)}
+.newbox-btn:active{transform:scale(.99)} .newbox-btn svg{width:24px;height:24px}
+.newbox-hint{font-size:11.5px;color:var(--muted);padding:7px 4px 0;line-height:1.4;text-align:center}
+.row.static{cursor:default}
+.cap-ov{background:var(--bg)}
+.cap-body{flex:1;overflow-y:auto;padding:18px 16px;display:flex;flex-direction:column;gap:16px}
+.cap-strip{display:flex;gap:10px}
+.cap-strip .t{flex:1;aspect-ratio:3/4;border-radius:12px;background:var(--surface-2);border:1px solid var(--border);overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center}
+.cap-strip .t img{width:100%;height:100%;object-fit:cover}
+.cap-strip .t .num{color:var(--muted);font-family:var(--mono);font-size:26px;font-weight:700}
+.cap-strip .t.filled{border-color:var(--success);border-width:2px}
+.cap-strip .t .mini{position:absolute;bottom:5px;right:5px;background:rgba(0,0,0,.6);color:#fff;border-radius:6px;padding:1px 7px;font-size:11px;font-weight:700}
+.cap-hint{font-size:14px;color:var(--muted);line-height:1.5;text-align:center;padding:0 6px}
+.cam-shoot{width:100%;height:64px;border-radius:16px;border:0;background:var(--primary);color:var(--primary-ink);font-weight:800;font-size:17px;display:flex;align-items:center;justify-content:center;gap:10px}
+.cam-shoot:active{transform:scale(.99)} .cam-shoot svg{width:26px;height:26px}
+.cam-reticle{position:absolute;left:6%;right:6%;top:50%;transform:translateY(-50%);height:26%;border:2px solid rgba(255,255,255,.9);border-radius:14px;box-shadow:0 0 0 2000px rgba(0,0,0,.35);pointer-events:none}
+.rv-body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px;background:var(--bg)}
+.rv-grid{display:flex;flex-direction:column;gap:12px}
+.rv-t{position:relative;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#000;padding:0;width:100%;display:block}
+.rv-t img{display:block;width:100%;max-height:42vh;object-fit:contain}
+.rv-t span{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.6);color:#fff;border-radius:6px;padding:2px 8px;font-family:var(--mono);font-size:12px}
+.rv-t.empty{height:80px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.rv-note{color:var(--muted);font-size:13px;text-align:center;line-height:1.5}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}.scan-reticle .laser{animation:none;top:50%}}
 </style>
 <style>html,body{padding:0}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
@@ -219,22 +246,17 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:6px 16px 40
     </button>
   </header>
 
-  <div class="scan">
-    <div class="scan-field">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 5v14M7 5v14M11 5v14M14 5v14M18 5v14M21 5v14"/></svg>
-      <input id="scanInput" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Scan or enter box ID / Escanear o ingresar ID">
-    </div>
-    <div class="scan-hint">Type the last digits, or use the camera below. / Escriba los últimos dígitos o use la cámara.</div>
-    <button class="scan-btn" id="scanBtn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M6 12h12"/></svg>
-      Scan barcode / Escanear
+  <div class="newbox">
+    <button class="newbox-btn" id="newBoxBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      New box — photo the barcode / Nueva caja
     </button>
+    <div class="newbox-hint">Photo ① is the barcode — the box ID is read from it automatically. / Foto ① es el código de barras.</div>
   </div>
 
   <main id="main"></main>
 </div>
 
-<input type="file" id="camInput" accept="image/*" capture="environment" hidden>
 <div id="toast"></div>
 
 <script>
@@ -277,7 +299,9 @@ function dbDelete(k){ if(memMode){ delete memStore[k]; return Promise.resolve();
 /* ---------- state ---------- */
 let DATE = todayStr();
 let boxes = [];   // [{key,date,fullId,last9,photos:[p|null,p|null,p|null]}]
-const urlCache = new Map();
+function pURL(p){ if(!p) return null; if(!p._url){ try{ p._url=URL.createObjectURL(p.blob); }catch(e){ return null; } } return p._url; }
+function pDrop(p){ if(p&&p._url){ try{ URL.revokeObjectURL(p._url); }catch(e){} p._url=null; } }
+function revokeAll(){ for(const b of boxes) for(const p of b.photos) pDrop(p); }
 
 function boxKey(fullId){ return DATE+"::"+last9(fullId); }
 function doneCount(b){ return b.photos.filter(Boolean).length; }
@@ -294,18 +318,15 @@ async function loadOrSeed(){
 }
 async function replaceList(idsArr){
   try{ const all=await dbGetAll(); for(const b of all) if(b.date===DATE) await dbDelete(b.key);}catch(e){}
-  urlCache.forEach(u=>URL.revokeObjectURL(u)); urlCache.clear();
+  revokeAll();
   boxes = idsArr.map(fid=>({key:DATE+"::"+last9(fid),date:DATE,fullId:fid,last9:last9(fid),photos:[null,null,null]}));
   for(const b of boxes){ try{ await dbPut(b);}catch(e){} }
   boxes.sort((a,b)=>a.last9.localeCompare(b.last9));
 }
 async function resetPhotos(){
+  revokeAll();
   for(const b of boxes){ b.photos=[null,null,null]; try{ await dbPut(b);}catch(e){} }
-  urlCache.forEach(u=>URL.revokeObjectURL(u)); urlCache.clear();
 }
-function thumbURL(b,slot){ const k=b.key+"#"+slot,p=b.photos[slot]; if(!p) return null;
-  if(urlCache.has(k)) return urlCache.get(k); const u=URL.createObjectURL(p.blob); urlCache.set(k,u); return u; }
-function dropURL(b,slot){ const k=b.key+"#"+slot; if(urlCache.has(k)){ URL.revokeObjectURL(urlCache.get(k)); urlCache.delete(k);} }
 
 /* ---------- image helpers ---------- */
 function loadImageEl(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file);
@@ -326,8 +347,9 @@ function canvasEncode(src,w,h,maxDim,q,cleanup){
 /* ---------- list render ---------- */
 const CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
 function rowHTML(b){ const c=doneCount(b);
-  let right = c===3 ? '<span class="check">'+CHECK+'</span>' : (c>0 ? '<span class="partial">'+c+'/3</span>' : '');
-  return '<button class="row'+(c===3?' done':'')+'" data-key="'+b.key+'"><span class="row-id mono">'+fmtId(b.last9)+'</span>'+right+'</button>';
+  if(c===3) return '<button class="row done" data-key="'+b.key+'"><span class="row-id mono">'+fmtId(b.last9)+'</span><span class="check">'+CHECK+'</span></button>';
+  const right = c>0 ? '<span class="partial">'+c+'/3</span>' : '';
+  return '<div class="row static"><span class="row-id mono">'+fmtId(b.last9)+'</span>'+right+'</div>';
 }
 function render(){
   $('#hdDate').textContent = DATE + " · Today / Hoy";
@@ -347,115 +369,129 @@ function render(){
   m.innerHTML=html;
 }
 
-/* ---------- camera capture (consecutive) ---------- */
-let curBox=null, stream=null, fallbackMode=false, busy=false, pendingSlot=-1;
-
+/* ---------- capture: device camera stills; photo #1 = barcode (identifies the box) ---------- */
+let cap=null, busy=false, stream=null;
 function firstEmpty(b){ for(let i=0;i<3;i++) if(!b.photos[i]) return i; return -1; }
+function shotCount(){ return cap? cap.photos.filter(Boolean).length : 0; }
 
-async function openBox(b){
-  curBox=b; fallbackMode=false; busy=false;
-  let ov=document.createElement('div'); ov.className='overlay'; ov.id='overlay';
+async function startNewBox(){
+  if(!(window.isSecureContext && navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){
+    toast('Camera needs HTTPS / La cámara requiere HTTPS',true); return; }
+  if(!zxReader) initZX();
+  cap={box:null, photos:[null,null,null]}; busy=false;
+  const ov=document.createElement('div'); ov.className='overlay'; ov.id='overlay';
   ov.innerHTML=
     '<div class="ov-head"><button class="ov-back" id="ovBack" aria-label="Back">‹</button>'
-    +'<div class="ov-id mono">'+fmtId(b.last9)+'</div>'
+    +'<div class="ov-id mono" id="ovId">① Barcode</div>'
     +'<span class="ov-count" id="camCount">0 / 3</span></div>'
-    +'<div class="cam-stage" id="camStage"><video id="camVideo" autoplay playsinline muted></video><div class="cam-guide"></div></div>'
+    +'<div class="cam-stage" id="camStage"><video id="camVideo" autoplay playsinline muted></video><div class="cam-reticle" id="camRet"></div></div>'
     +'<div class="cam-strip" id="camStrip"></div>'
-    +'<div class="cam-hint" id="camHint">Tap the shutter to take 3 photos. / Toque el obturador para tomar 3 fotos.</div>'
-    +'<div class="cam-bar" id="camBar"><button class="shutter" id="shutterBtn" aria-label="Shutter"></button></div>';
+    +'<div class="cam-hint" id="camHint"></div>'
+    +'<div class="cam-bar" id="camBar"></div>';
   document.body.appendChild(ov);
-  renderStrip(); updateCount();
+  renderStrip(); updateHead();
   $('#ovBack').onclick=closeBox;
-  const stageEl=$('#camStage'); if(stageEl) stageEl.onclick=()=>{ if(!fallbackMode) onShutter(); };
-  // Live in-page camera (tap shutter, no confirm) needs a secure context (https). Else use device camera.
-  if(!(window.isSecureContext && navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){
-    enterFallback(true); return;   // auto-open device camera now, within the tap gesture
-  }
-  try{
-    stream=await getUserMediaBest();
-    const v=$('#camVideo'); v.srcObject=stream; await v.play().catch(()=>{});
-  }catch(e){ enterFallback(false); }
+  $('#camStage').onclick=()=>tapFocus();
+  try{ stream=await getUM(); const v=$('#camVideo'); v.srcObject=stream; await v.play().catch(()=>{}); setupCam(); }
+  catch(e){ toast('Camera blocked / Cámara bloqueada',true); closeBox(); }
 }
-function getUserMediaBest(){
-  const g=c=>navigator.mediaDevices.getUserMedia(c);
-  return g({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false})
+function getUM(){ const F=[{focusMode:'continuous'}]; const g=c=>navigator.mediaDevices.getUserMedia(c);
+  return g({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080},advanced:F},audio:false})
     .catch(()=>g({video:{facingMode:'environment'},audio:false}))
-    .catch(()=>g({video:true,audio:false}));
+    .catch(()=>g({video:true,audio:false})); }
+function setupCam(){ try{ const t=stream.getVideoTracks()[0];
+  try{ t.applyConstraints({advanced:[{focusMode:'continuous'}]}); }catch(e){}
+  const caps=(t.getCapabilities&&t.getCapabilities())||{};
+  if(caps.zoom&&(caps.zoom.max||1)>=2){ try{ t.applyConstraints({advanced:[{zoom:Math.min(caps.zoom.max,2)}]}); }catch(e){} } }catch(e){} }
+function tapFocus(){ try{ const t=stream&&stream.getVideoTracks()[0]; if(!t) return;
+  t.applyConstraints({advanced:[{focusMode:'single-shot'}]}).then(()=>setTimeout(()=>{ try{t.applyConstraints({advanced:[{focusMode:'continuous'}]});}catch(e){} },1200)).catch(()=>{}); }catch(e){} }
+function grabFrameCanvas(maxSide){ const v=$('#camVideo'); const w=v.videoWidth||1280,h=v.videoHeight||720; const s=Math.min(1,maxSide/Math.max(w,h));
+  const cv=document.createElement('canvas'); cv.width=Math.max(1,Math.round(w*s)); cv.height=Math.max(1,Math.round(h*s));
+  cv.getContext('2d').drawImage(v,0,0,cv.width,cv.height); return cv; }
+async function capture(){
+  if(busy||!stream||!cap) return; busy=true; const btn=$('#capBtn'); if(btn) btn.disabled=true;
+  const hint=$('#camHint'); const prev=hint?hint.textContent:''; if(hint) hint.textContent='Reading… / Leyendo…';
+  try{
+    const cv=grabFrameCanvas(1600);
+    if(!cap.box){                                    // identify from the barcode frame
+      const text=await decodeCanvas(cv); const hit=text?matchBox(text):null;
+      if(!hit){ toast(text?('Not in list / No en la lista: '+String(text).replace(/\s+/g,'').slice(-9)):'No barcode — tap the barcode to focus, then Capture / Sin código',true);
+        if(hint) hint.textContent=prev; busy=false; if(btn) btn.disabled=false; return; }
+      if(isDone(hit)){ if(hint) hint.textContent=prev; busy=false; if(btn) btn.disabled=false;
+        confirmModal('Already done / Ya completada', fmtId(hit.last9)+' already has 3 photos. Retake? / ¿Repetir?','Retake / Repetir',true,async()=>{
+          for(const p of hit.photos) pDrop(p); hit.photos=[null,null,null]; try{await dbPut(hit);}catch(e){} await assignFirst(hit,cv); }); return; }
+      await assignFirst(hit,cv);
+    } else {                                         // photo 2 / 3
+      const slot=firstEmpty(cap.box); if(slot<0){ busy=false; if(btn) btn.disabled=false; return; }
+      const comp=await canvasToPhoto(cv,0.72); cap.photos[slot]={blob:comp.blob,w:comp.w,h:comp.h,ts:Date.now()}; cap.box.photos[slot]=cap.photos[slot];
+      try{await dbPut(cap.box);}catch(e){} renderStrip(); updateHead();
+      if(isDone(cap.box)) toast('✓ '+fmtId(cap.box.last9)+' — done / listo');
+    }
+  }catch(e){ toast('Capture failed / Fallo al capturar',true); if(hint) hint.textContent=prev; }
+  busy=false; const b2=$('#capBtn'); if(b2) b2.disabled=false;
 }
-function enterFallback(autoLaunch){
-  fallbackMode=true;
-  if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
-  const stage=$('#camStage');
-  if(stage) stage.innerHTML='<div class="cam-fallback"><div>Using device camera.<br>Usando la cámara del dispositivo.</div></div>';
-  renderStrip(); updateCount();
-  if(autoLaunch) launchNativeShot();
-}
-function launchNativeShot(){ const s=firstEmpty(curBox); if(s<0) return; pendingSlot=s; const inp=$('#camInput'); inp.value=''; inp.click(); }
-function renderStrip(){
-  const strip=$('#camStrip'); if(!strip) return; let h='';
-  for(let i=0;i<3;i++){ const p=curBox.photos[i];
-    if(p){ const u=thumbURL(curBox,i); h+='<div class="t filled" data-view="'+i+'"><img src="'+u+'"><span class="mini">'+(i+1)+'</span></div>'; }
-    else { h+='<div class="t"><span class="num">'+(i+1)+'</span></div>'; }
+function renderStrip(){ const strip=$('#camStrip'); if(!strip||!cap) return; let h='';
+  for(let i=0;i<3;i++){ const p=cap.photos[i]; const lab=i===0?'⌗':(i+1);
+    if(p) h+='<div class="t filled" data-view="'+i+'"><img src="'+pURL(p)+'"><span class="mini">'+lab+'</span></div>';
+    else h+='<div class="t"><span class="num">'+lab+'</span></div>';
   }
   strip.innerHTML=h;
 }
-function updateCount(){
-  const c=doneCount(curBox), el=$('#camCount');
-  if(el){ if(c===3){ el.textContent='3 / 3 ✓'; el.className='ov-count done'; } else { el.textContent=c+' / 3'; el.className='ov-count'; } }
+function updateHead(){
+  if(!cap) return; const c=shotCount();
+  const id=$('#ovId'); if(id) id.textContent = cap.box? fmtId(cap.box.last9) : '① Barcode / Código';
+  const el=$('#camCount'); if(el){ if(c===3){el.textContent='3 / 3 ✓';el.className='ov-count done';} else {el.textContent=c+' / 3';el.className='ov-count';} }
   renderBar();
-  const hint=$('#camHint'); if(!hint) return;
-  if(c===3) hint.textContent='Tap a photo to retake, or Done. / Toque una foto para repetir, o Listo.';
-  else if(fallbackMode) hint.textContent='Tap the button for each photo. / Toque el botón para cada foto.';
-  else hint.textContent='Tap the shutter or the image to take 3 photos. / Toque el obturador para tomar 3 fotos.';
+  const hint=$('#camHint'); if(hint){
+    if(c===3) hint.textContent='All 3 photos taken. Tap a photo to retake, or Done. / 3 fotos listas. Toque para repetir, o Listo.';
+    else if(!cap.box) hint.textContent='Photo ①: aim at the BARCODE, tap it to focus, then Capture. / Foto ①: apunte al código, toque para enfocar.';
+    else hint.textContent='Box '+fmtId(cap.box.last9)+' — photo '+(firstEmpty(cap.box)+1)+' of 3. Tap to focus, then Capture. / Foto '+(firstEmpty(cap.box)+1)+' de 3.';
+  }
+  const ret=$('#camRet'); if(ret) ret.style.display = cap.box? 'none':'block';
 }
-function renderBar(){
-  const bar=$('#camBar'); if(!bar) return; bar.hidden=false; const c=doneCount(curBox);
+function renderBar(){ const bar=$('#camBar'); if(!bar||!cap) return; const c=shotCount();
   if(c===3){ bar.innerHTML='<button class="cam-done" id="camDone">Done / Listo</button>'; $('#camDone').onclick=closeBox; return; }
-  if(fallbackMode){ const n=firstEmpty(curBox)+1;
-    bar.innerHTML='<button class="cam-done" id="fbNext" style="background:var(--primary)">Take photo '+n+' / 3 · Tomar foto</button>';
-    $('#fbNext').onclick=launchNativeShot; return; }
-  bar.innerHTML='<button class="shutter" id="shutterBtn" aria-label="Shutter"></button>'; $('#shutterBtn').onclick=onShutter;
+  const n=cap.box? firstEmpty(cap.box)+1 : 1;
+  const label = (c===0) ? 'Capture barcode ① / Capturar código' : ('Capture photo '+n+' / Capturar '+n);
+  bar.innerHTML='<button class="cam-shoot" id="capBtn">'
+    +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>'
+    +label+'</button>';
+  $('#capBtn').onclick=capture;
 }
-async function onShutter(){
-  if(busy||!stream) return; const slot=firstEmpty(curBox); if(slot<0) return;
-  busy=true; const btn=$('#shutterBtn'); if(btn) btn.disabled=true;
-  try{
-    const v=$('#camVideo');
-    const {blob,w,h}=await canvasEncode(v,v.videoWidth,v.videoHeight,1600,0.72,null);
-    dropURL(curBox,slot); curBox.photos[slot]={blob,w,h,ts:Date.now()};
-    await dbPut(curBox); renderStrip(); updateCount();
-    if(isDone(curBox)) toast('✓ '+fmtId(curBox.last9)+' — done / listo');
-  }catch(e){ toast('Capture failed / Fallo al capturar',true); }
-  busy=false; const b2=$('#shutterBtn'); if(b2) b2.disabled=false;
+async function assignFirst(hit,cv){
+  const comp=await canvasToPhoto(cv,0.72);
+  const p={blob:comp.blob,w:comp.w,h:comp.h,ts:Date.now()};
+  cap.photos[0]=p; hit.photos=cap.photos; hit.photos[0]=p; cap.box=hit;
+  try{await dbPut(hit);}catch(e){}
+  beep(); if(navigator.vibrate) try{navigator.vibrate(120);}catch(e){}
+  renderStrip(); updateHead();
 }
-$('#camInput').addEventListener('change', async e=>{
-  const file=e.target.files&&e.target.files[0]; if(!file||!curBox) return;
-  const slot=pendingSlot>=0?pendingSlot:firstEmpty(curBox); pendingSlot=-1; if(slot<0) return;
-  toast('Processing… / Procesando…');
-  try{ const {blob,w,h}=await compressFile(file,1600,0.72);
-    dropURL(curBox,slot); curBox.photos[slot]={blob,w,h,ts:Date.now()};
-    await dbPut(curBox); renderStrip(); updateCount();
-    if(isDone(curBox)) toast('✓ '+fmtId(curBox.last9)+' — done / listo');
-  }catch(err){ toast('Photo failed / Fallo de foto',true); }
-});
-function closeBox(){ if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
-  const ov=$('#overlay'); if(ov) ov.remove(); curBox=null; render();
-  setTimeout(()=>{ const i=$('#scanInput'); if(i) i.focus(); },50); }
+function closeBox(){ if(stream){ try{stream.getTracks().forEach(t=>t.stop());}catch(e){} stream=null; } const ov=$('#overlay'); if(ov) ov.remove(); cap=null; render(); }
 
-/* photo viewer with retake */
-function openViewer(b,slot){ const u=thumbURL(b,slot); if(!u) return;
+/* photo viewer (retake only during active capture) */
+function openViewer(b,slot,allowRetake){ const u=pURL(b.photos[slot]); if(!u) return;
   const v=document.createElement('div'); v.className='viewer'; v.id='viewer';
-  v.innerHTML='<div class="vcap">'+fmtId(b.last9)+' · '+(slot+1)+' / 3</div><img src="'+u+'">'
-    +'<div class="vbar"><button class="vretake" id="vRetake">↺ Retake / Repetir</button><button class="vclose-b" id="vCloseB">Close / Cerrar</button></div>';
+  v.innerHTML='<div class="vcap">'+fmtId(b.last9)+' · '+(slot===0?'⌗ barcode':(slot+1)+' / 3')+'</div><img src="'+u+'">'
+    +'<div class="vbar">'+(allowRetake?'<button class="vretake" id="vRetake">↺ Retake / Repetir</button>':'')+'<button class="vclose-b" id="vCloseB">Close / Cerrar</button></div>';
   document.body.appendChild(v);
   $('#vCloseB').onclick=()=>v.remove();
-  $('#vRetake').onclick=()=>{ v.remove(); retakeSlot(slot); };
+  const rb=$('#vRetake'); if(rb) rb.onclick=()=>{ v.remove(); retakeSlot(slot); };
 }
 async function retakeSlot(slot){
-  dropURL(curBox,slot); curBox.photos[slot]=null; try{ await dbPut(curBox);}catch(e){}
-  renderStrip(); updateCount();
-  if(fallbackMode){ pendingSlot=slot; const inp=$('#camInput'); inp.value=''; inp.click(); }
-  // live mode: shutter is back automatically; next shutter fills this now-empty slot
+  if(!cap||!cap.box) return;
+  pDrop(cap.photos[slot]); cap.photos[slot]=null; cap.box.photos[slot]=null;
+  try{await dbPut(cap.box);}catch(e){}
+  renderStrip(); updateHead();
+}
+function reviewBox(b){
+  const ov=document.createElement('div'); ov.className='overlay'; ov.id='overlay';
+  let g=''; for(let i=0;i<3;i++){ const p=b.photos[i];
+    g+= p? '<button class="rv-t" data-rv="'+i+'"><img src="'+pURL(p)+'"><span>'+(i===0?'⌗':(i+1))+'</span></button>' : '<div class="rv-t empty">—</div>'; }
+  ov.innerHTML='<div class="ov-head"><button class="ov-back" id="ovBack">‹</button><div class="ov-id mono">'+fmtId(b.last9)+'</div><span class="ov-count done">done</span></div>'
+    +'<div class="rv-body"><div class="rv-grid">'+g+'</div><div class="rv-note">To retake, photograph the barcode again from the main screen.<br>Para repetir, vuelva a fotografiar el código.</div></div>';
+  document.body.appendChild(ov);
+  $('#ovBack').onclick=()=>ov.remove();
+  ov.querySelectorAll('[data-rv]').forEach(el=>el.onclick=()=>openViewer(b,+el.dataset.rv,false));
 }
 
 /* ---------- modals ---------- */
@@ -529,18 +565,14 @@ async function deliverFile(blob,filename){
   }catch(e){ toast('Save failed / Fallo al guardar',true); }
 }
 
-/* ---------- match + manual entry ---------- */
+/* ---------- match ---------- */
 function matchBox(raw){ const norm=String(raw).replace(/\s+/g,'').toUpperCase();
-  return boxes.find(b=>norm.includes(b.last9))       // full scan / serial with prefix or suffix
-      || boxes.find(b=>keyOf(b.fullId)===keyOf(raw))  // last-9 match
-      || boxes.find(b=>b.last9===String(raw).toUpperCase()); } // exact serial typed
-function resolveScan(){ const raw=$('#scanInput').value.trim(); if(!raw) return;
-  const hit=matchBox(raw);
-  if(hit){ $('#scanInput').value=''; openBox(hit); }
-  else { toast('Not in list / No está en la lista: '+(raw.length>16?raw.slice(-9):raw),true); $('#scanInput').select(); } }
+  return boxes.find(b=>norm.includes(b.last9))
+      || boxes.find(b=>keyOf(b.fullId)===keyOf(raw))
+      || boxes.find(b=>b.last9===String(raw).toUpperCase()); }
 
-/* ---------- barcode scanner (Code 128 only) ---------- */
-let zxReader=null, zxHints=null, scanning=false, scanStream=null, scanCanvas=null, lastBad='', audioCtx=null, scanTries=0;
+/* ---------- barcode decode from a still photo (Code 128 only) ---------- */
+let zxReader=null, zxHints=null, audioCtx=null;
 function initZX(){
   try{
     if(!window.ZXing||!ZXing.MultiFormatReader) return false;
@@ -549,85 +581,8 @@ function initZX(){
     zxHints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[ZXing.BarcodeFormat.CODE_128]); // ignore QR & others
     zxHints.set(ZXing.DecodeHintType.TRY_HARDER,true);
     zxReader.setHints(zxHints);
-    scanCanvas=document.createElement('canvas');
     return true;
   }catch(e){ return false; }
-}
-function openScanner(){
-  if(!zxReader && !initZX()){ toast('Scanner not ready / Escáner no listo',true); return; }
-  if(!(window.isSecureContext && navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){
-    toast('Camera needs HTTPS / La cámara requiere HTTPS',true); return; }
-  const ov=document.createElement('div'); ov.className='scan-ov'; ov.id='scanOverlay';
-  ov.innerHTML='<div class="ov-head"><button class="ov-back" id="scanBack" aria-label="Back">‹</button>'
-    +'<div class="ov-id" style="font-size:18px">Scan barcode / Escanear</div>'
-    +'<button class="ov-back" id="torchBtn" aria-label="Light" hidden>🔦</button></div>'
-    +'<div class="scan-stage"><video id="scanVideo" playsinline muted autoplay></video>'
-    +'<div class="scan-reticle"><div class="laser"></div></div>'
-    +'<div class="scan-dbg" id="scanDbg">starting…</div>'
-    +'<div class="zoom-ctl" id="zoomCtl" hidden><button id="zoomOut" aria-label="Zoom out">–</button><span id="zoomVal">1.0×</span><button id="zoomIn" aria-label="Zoom in">+</button></div>'
-    +'<div class="scan-msg">Hold ~20 cm away · let it focus · tap to refocus<br>A ~20 cm · deje enfocar · toque para reenfocar</div></div>';
-  document.body.appendChild(ov);
-  $('#scanBack').onclick=closeScanner;
-  startScan();
-}
-async function getScanStream(){
-  const tries=[
-    {video:{facingMode:{ideal:'environment'},width:{ideal:2560},height:{ideal:1440}},audio:false},
-    {video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false},
-    {video:{facingMode:'environment'},audio:false},
-    {video:true,audio:false}
-  ];
-  let err; for(const c of tries){ try{ return await navigator.mediaDevices.getUserMedia(c);}catch(e){ err=e; } }
-  throw err||new Error('no camera');
-}
-function setupCamera(){
-  try{
-    const track=scanStream.getVideoTracks()[0];
-    try{ track.applyConstraints({advanced:[{focusMode:'continuous'}]}); }catch(e){}
-    const caps=(track.getCapabilities&&track.getCapabilities())||{};
-    // Zoom — lets the user hold at a focusable distance while the barcode looks bigger
-    if(caps.zoom && (caps.zoom.max||1)>(caps.zoom.min||1)){
-      const zc=$('#zoomCtl'); if(zc) zc.hidden=false;
-      const zmin=caps.zoom.min||1, zmax=caps.zoom.max||1, zstep=caps.zoom.step||0.1;
-      let z=Math.min(zmax, Math.max(zmin, 2));
-      const applyZ=()=>{ track.applyConstraints({advanced:[{zoom:z}]}).catch(()=>{}); const zv=$('#zoomVal'); if(zv) zv.textContent=z.toFixed(1)+'×'; };
-      applyZ();
-      const zi=$('#zoomIn'), zo=$('#zoomOut');
-      if(zi) zi.onclick=()=>{ z=Math.min(zmax, z+Math.max(zstep,0.5)); applyZ(); };
-      if(zo) zo.onclick=()=>{ z=Math.max(zmin, z-Math.max(zstep,0.5)); applyZ(); };
-    }
-    // Torch — helps focus in dim light
-    if(caps.torch){ const btn=$('#torchBtn'); if(btn){ btn.hidden=false; let on=false;
-      btn.onclick=()=>{ on=!on; track.applyConstraints({advanced:[{torch:on}]}).catch(()=>{}); btn.style.opacity=on?1:0.6; }; } }
-    // Tap to refocus (single-shot, then back to continuous)
-    const v=$('#scanVideo'); if(v) v.onclick=()=>{ try{
-      track.applyConstraints({advanced:[{focusMode:'single-shot'}]})
-        .then(()=>setTimeout(()=>{ try{ track.applyConstraints({advanced:[{focusMode:'continuous'}]}); }catch(e){} },1400))
-        .catch(()=>{}); }catch(e){} };
-  }catch(e){}
-}
-async function startScan(){
-  try{
-    scanStream=await getScanStream();
-    const v=$('#scanVideo'); v.srcObject=scanStream; await v.play().catch(()=>{});
-    setupCamera();
-    scanning=true; lastBad=''; scanTries=0; setTimeout(scanTick,300);
-  }catch(e){ toast('Camera blocked / Cámara bloqueada',true); closeScanner(); }
-}
-function grabBand(v,frac){ const vw=v.videoWidth,vh=v.videoHeight; let sh=vh,sy=0;
-  if(frac){ sh=Math.round(vh*frac); sy=Math.round((vh-sh)/2); }
-  scanCanvas.width=vw; scanCanvas.height=sh; scanCanvas.getContext('2d').drawImage(v,0,sy,vw,sh,0,0,vw,sh); return scanCanvas; }
-function scanTick(){
-  if(!scanning) return;
-  const v=$('#scanVideo');
-  if(v && v.readyState>=2 && v.videoWidth){
-    let text=null;
-    for(const frac of [0.34,0.6,null]){ text=decodeFrame(grabBand(v,frac)); if(text) break; }
-    scanTries++;
-    const dbg=$('#scanDbg'); if(dbg) dbg.textContent=v.videoWidth+'×'+v.videoHeight+' · try '+scanTries+(text?(' · '+String(text).replace(/\s+/g,'').slice(-9)):' · …');
-    if(text){ onScanned(text); return; }
-  } else { const dbg=$('#scanDbg'); if(dbg) dbg.textContent='camera starting…'; }
-  setTimeout(scanTick,110);
 }
 function decodeFrame(canvas){
   try{
@@ -641,16 +596,31 @@ function decodeFrame(canvas){
   }catch(e){ return null; }
   finally{ try{ zxReader.reset(); }catch(e){} }
 }
-function onScanned(text){
-  const hit=matchBox(text);
-  if(hit){ scanning=false; beep(); if(navigator.vibrate) try{navigator.vibrate(120);}catch(e){}
-    closeScanner(); openBox(hit); return; }
-  const t9=String(text).replace(/\s+/g,'').slice(-9);
-  if(t9!==lastBad){ lastBad=t9; showScanErr('Not in list / No en lista: '+t9); }
-  setTimeout(scanTick,140);
+// Downscale the (possibly huge) camera photo to a memory-safe canvas ONCE.
+async function fileToCanvas(file, maxSide){
+  const cv=document.createElement('canvas');
+  let bmp=null;
+  try{ bmp=await createImageBitmap(file,{resizeWidth:maxSide,resizeQuality:'high'}); }   // low peak memory
+  catch(e){ try{ bmp=await createImageBitmap(file); }catch(e2){ bmp=null; } }
+  if(bmp){ const w=bmp.width,h=bmp.height,s=Math.min(1,maxSide/Math.max(w,h));
+    cv.width=Math.max(1,Math.round(w*s)); cv.height=Math.max(1,Math.round(h*s));
+    cv.getContext('2d').drawImage(bmp,0,0,cv.width,cv.height); if(bmp.close)bmp.close(); return cv; }
+  const {im,u}=await loadImageEl(file); const w=im.naturalWidth,h=im.naturalHeight,s=Math.min(1,maxSide/Math.max(w,h));
+  cv.width=Math.max(1,Math.round(w*s)); cv.height=Math.max(1,Math.round(h*s));
+  cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height); URL.revokeObjectURL(u); return cv;
 }
-function showScanErr(msg){ let e=$('#scanErr'); if(!e){ e=document.createElement('div'); e.className='scan-err'; e.id='scanErr'; const st=document.querySelector('.scan-stage'); if(st) st.appendChild(e); } if(e) e.textContent=msg; }
-function closeScanner(){ scanning=false; if(scanStream){ scanStream.getTracks().forEach(t=>t.stop()); scanStream=null; } const ov=$('#scanOverlay'); if(ov) ov.remove(); }
+function canvasToPhoto(cv,q){ return new Promise(res=>cv.toBlob(b=>res({blob:b,w:cv.width,h:cv.height}),'image/jpeg',q)); }
+async function decodeCanvas(cv){
+  if(!zxReader && !initZX()) return null;
+  try{ if('BarcodeDetector' in window){ const bd=new window.BarcodeDetector({formats:['code_128']});
+    const codes=await bd.detect(cv); for(const c of codes){ if(!c.format||c.format==='code_128'){ if(c.rawValue) return c.rawValue; } } } }catch(e){}
+  let t=decodeFrame(cv); if(t) return t;
+  const cw=cv.width,ch=cv.height;
+  for(const frac of [0.5,0.34,0.7]){ const bh=Math.round(ch*frac),by=Math.round((ch-bh)/2);
+    const cc=document.createElement('canvas'); cc.width=cw; cc.height=bh;
+    cc.getContext('2d').drawImage(cv,0,by,cw,bh,0,0,cw,bh); t=decodeFrame(cc); if(t) return t; }
+  return null;
+}
 function beep(){ try{ audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
   const o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.type='square'; o.frequency.value=880;
   o.connect(g); g.connect(audioCtx.destination); const t=audioCtx.currentTime;
@@ -658,24 +628,17 @@ function beep(){ try{ audioCtx=audioCtx||new (window.AudioContext||window.webkit
   o.start(t); o.stop(t+0.17); }catch(e){} }
 
 /* ---------- events ---------- */
-$('#scanInput').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); resolveScan(); } });
+$('#newBoxBtn').addEventListener('click',startNewBox);
 $('#pdfBtn').addEventListener('click',makePDF);
 $('#setBtn').addEventListener('click',openSettings);
-$('#scanBtn').addEventListener('click',openScanner);
 $('#main').addEventListener('click',e=>{
   const head=e.target.closest('#doneHead'); if(head){ const m=$('#main'); m.dataset.doneCollapsed=m.dataset.doneCollapsed==='1'?'0':'1'; render(); return; }
-  const row=e.target.closest('.row'); if(!row) return; const b=boxes.find(x=>x.key===row.dataset.key); if(b) openBox(b);
+  const row=e.target.closest('.row.done'); if(row){ const b=boxes.find(x=>x.key===row.dataset.key); if(b) reviewBox(b); }
 });
-document.addEventListener('click',e=>{ const vEl=e.target.closest('[data-view]'); if(vEl&&curBox){ openViewer(curBox,+vEl.dataset.view); } });
-document.addEventListener('click',e=>{
-  if($('#overlay')||$('#viewer')||$('#setModal')||document.querySelector('.modal')||$('#pdfProg')) return;
-  if(e.target.closest('button')||e.target.closest('input')||e.target.closest('textarea')) return;
-  const inp=$('#scanInput'); if(inp) setTimeout(()=>inp.focus(),0);
-});
+document.addEventListener('click',e=>{ const vEl=e.target.closest('.cam-strip [data-view]'); if(vEl&&cap&&cap.box){ openViewer(cap.box,+vEl.dataset.view,true); } });
 
 /* ---------- boot ---------- */
-(async function(){ DB=await openDB(); await loadOrSeed(); render();
-  setTimeout(()=>{ const i=$('#scanInput'); if(i) i.focus(); },200); })();
+(async function(){ DB=await openDB(); await loadOrSeed(); render(); })();
 </script>
 
 </body>
