@@ -257,7 +257,6 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:6px 16px 40
   <main id="main"></main>
 </div>
 
-<input type="file" id="camInput" accept="image/*" capture="environment" hidden>
 <div id="toast"></div>
 
 <script>
@@ -370,27 +369,88 @@ function render(){
   m.innerHTML=html;
 }
 
-/* ---------- capture: DEVICE CAMERA still photos; photo #1 = barcode (identifies the box) ---------- */
-let cap=null, busy=false;
+/* ---------- capture: IN-PAGE camera (no app launch → no reload/OOM); takePhoto still; photo #1 = barcode ---------- */
+let cap=null, busy=false, stream=null;
 function firstEmpty(b){ for(let i=0;i<3;i++) if(!b.photos[i]) return i; return -1; }
 function shotCount(){ return cap? cap.photos.filter(Boolean).length : 0; }
 
-function startNewBox(){
+async function startNewBox(){
+  if(!(window.isSecureContext && navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){
+    toast('Camera needs HTTPS / La cámara requiere HTTPS',true); return; }
   if(!zxReader) initZX();
   cap={box:null, photos:[null,null,null]}; busy=false;
-  const ov=document.createElement('div'); ov.className='overlay cap-ov'; ov.id='overlay';
+  const ov=document.createElement('div'); ov.className='overlay'; ov.id='overlay';
   ov.innerHTML=
     '<div class="ov-head"><button class="ov-back" id="ovBack" aria-label="Back">‹</button>'
     +'<div class="ov-id mono" id="ovId">① Barcode</div>'
     +'<span class="ov-count" id="camCount">0 / 3</span></div>'
-    +'<div class="cap-body"><div class="cap-strip" id="camStrip"></div><div class="cap-hint" id="camHint"></div></div>'
+    +'<div class="cam-stage" id="camStage"><video id="camVideo" autoplay playsinline muted></video><div class="cam-reticle" id="camRet"></div>'
+    +'<div class="zoom-ctl" id="zoomCtl" hidden><button id="zoomOut" aria-label="Zoom out">–</button><span id="zoomVal">1.0×</span><button id="zoomIn" aria-label="Zoom in">+</button></div></div>'
+    +'<div class="cam-strip" id="camStrip"></div>'
+    +'<div class="cam-hint" id="camHint"></div>'
     +'<div class="cam-bar" id="camBar"></div>';
   document.body.appendChild(ov);
   renderStrip(); updateHead();
   $('#ovBack').onclick=closeBox;
-  shootNext();   // open the device camera for photo ① right away (within this tap gesture)
+  $('#camStage').onclick=()=>tapFocus();
+  try{ stream=await getUM(); const v=$('#camVideo'); v.srcObject=stream; await v.play().catch(()=>{}); setupCam(); }
+  catch(e){ toast('Camera blocked / Cámara bloqueada',true); closeBox(); }
 }
-function shootNext(){ if(busy) return; const inp=$('#camInput'); if(!inp) return; inp.value=''; inp.click(); }
+function getUM(){ const F=[{focusMode:'continuous'}]; const g=c=>navigator.mediaDevices.getUserMedia(c);
+  return g({video:{facingMode:{ideal:'environment'},width:{ideal:2560},height:{ideal:1440},advanced:F},audio:false})
+    .catch(()=>g({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false}))
+    .catch(()=>g({video:{facingMode:'environment'},audio:false}))
+    .catch(()=>g({video:true,audio:false})); }
+function setupCam(){ try{ const t=stream.getVideoTracks()[0];
+  try{ t.applyConstraints({advanced:[{focusMode:'continuous'}]}); }catch(e){}
+  const caps=(t.getCapabilities&&t.getCapabilities())||{};
+  if(caps.zoom && (caps.zoom.max||1)>(caps.zoom.min||1)){
+    const zc=$('#zoomCtl'); if(zc) zc.hidden=false;
+    const zmin=caps.zoom.min||1, zmax=caps.zoom.max||1, zstep=caps.zoom.step||0.1;
+    let z=zmin;
+    const apply=()=>{ try{ t.applyConstraints({advanced:[{zoom:z}]}); }catch(e){} const zv=$('#zoomVal'); if(zv) zv.textContent=z.toFixed(1)+'×'; };
+    apply();
+    const zi=$('#zoomIn'),zo=$('#zoomOut');
+    if(zi) zi.onclick=()=>{ z=Math.min(zmax,z+Math.max(zstep,0.5)); apply(); };
+    if(zo) zo.onclick=()=>{ z=Math.max(zmin,z-Math.max(zstep,0.5)); apply(); };
+  } }catch(e){} }
+function tapFocus(){ try{ const t=stream&&stream.getVideoTracks()[0]; if(!t) return;
+  t.applyConstraints({advanced:[{focusMode:'single-shot'}]}).then(()=>setTimeout(()=>{ try{t.applyConstraints({advanced:[{focusMode:'continuous'}]});}catch(e){} },1200)).catch(()=>{}); }catch(e){} }
+function grabFrameCanvas(maxSide){ const v=$('#camVideo'); const w=v.videoWidth||1280,h=v.videoHeight||720; const s=Math.min(1,maxSide/Math.max(w,h));
+  const cv=document.createElement('canvas'); cv.width=Math.max(1,Math.round(w*s)); cv.height=Math.max(1,Math.round(h*s));
+  cv.getContext('2d').drawImage(v,0,0,cv.width,cv.height); return cv; }
+async function grabStill(maxSide){
+  const track=stream && stream.getVideoTracks()[0];
+  if(window.ImageCapture && track){ try{
+    const ic=new ImageCapture(track); let opts={};
+    try{ const pc=await ic.getPhotoCapabilities(); if(pc&&pc.imageWidth&&pc.imageWidth.max){ opts.imageWidth=pc.imageWidth.max; if(pc.imageHeight&&pc.imageHeight.max) opts.imageHeight=pc.imageHeight.max; } }catch(e){}
+    const blob=await ic.takePhoto(opts); return await fileToCanvas(blob,maxSide);   // full-res still → downscale safely
+  }catch(e){} }
+  return grabFrameCanvas(maxSide);   // fallback: video frame
+}
+async function capture(){
+  if(busy||!stream||!cap) return; busy=true; const btn=$('#capBtn'); if(btn) btn.disabled=true;
+  const hint=$('#camHint'); const prev=hint?hint.textContent:''; if(hint) hint.textContent='Capturing… / Capturando…';
+  try{
+    if(!cap.box){                                    // barcode photo ① (identify)
+      const cv=await grabStill(1600);
+      const text=await decodeCanvas(cv); const hit=text?matchBox(text):null;
+      if(!hit){ toast(text?('Not in list / No en la lista: '+String(text).replace(/\s+/g,'').slice(-9)):'No barcode — hold ~25 cm, zoom in, then Capture / Sin código',true);
+        if(hint) hint.textContent=prev; busy=false; if(btn) btn.disabled=false; return; }
+      if(isDone(hit)){ if(hint) hint.textContent=prev; busy=false; if(btn) btn.disabled=false;
+        confirmModal('Already done / Ya completada', fmtId(hit.last9)+' already has 3 photos. Retake? / ¿Repetir?','Retake / Repetir',true,async()=>{
+          for(const p of hit.photos) pDrop(p); hit.photos=[null,null,null]; try{await dbPut(hit);}catch(e){} await assignFirst(hit,cv); }); return; }
+      await assignFirst(hit,cv);
+    } else {                                         // photos ② ③ — full-res still, higher quality
+      const slot=firstEmpty(cap.box); if(slot<0){ busy=false; if(btn) btn.disabled=false; return; }
+      const cv=await grabStill(2400);
+      const comp=await canvasToPhoto(cv,0.85); cap.photos[slot]={blob:comp.blob,w:comp.w,h:comp.h,ts:Date.now()}; cap.box.photos[slot]=cap.photos[slot];
+      try{await dbPut(cap.box);}catch(e){} renderStrip(); updateHead();
+      if(isDone(cap.box)) toast('✓ '+fmtId(cap.box.last9)+' — done / listo');
+    }
+  }catch(e){ toast('Capture failed / Fallo al capturar',true); if(hint) hint.textContent=prev; }
+  busy=false; const b2=$('#capBtn'); if(b2) b2.disabled=false;
+}
 function renderStrip(){ const strip=$('#camStrip'); if(!strip||!cap) return; let h='';
   for(let i=0;i<3;i++){ const p=cap.photos[i]; const lab=i===0?'⌗':(i+1);
     if(p) h+='<div class="t filled" data-view="'+i+'"><img src="'+pURL(p)+'"><span class="mini">'+lab+'</span></div>';
@@ -405,18 +465,19 @@ function updateHead(){
   renderBar();
   const hint=$('#camHint'); if(hint){
     if(c===3) hint.textContent='All 3 photos taken. Tap a photo to retake, or Done. / 3 fotos listas. Toque para repetir, o Listo.';
-    else if(!cap.box) hint.textContent='Photo ①: the camera opens — take a clear photo of the BARCODE. / Foto ①: la cámara se abre — foto clara del código de barras.';
-    else hint.textContent='Box '+fmtId(cap.box.last9)+' — take photo '+(firstEmpty(cap.box)+1)+' of 3. / Foto '+(firstEmpty(cap.box)+1)+' de 3.';
+    else if(!cap.box) hint.textContent='Photo ①: hold ~25 cm from the BARCODE (tap to focus), then Capture. / Foto ①: a ~25 cm del código, toque para enfocar.';
+    else hint.textContent='Box '+fmtId(cap.box.last9)+' — photo '+(firstEmpty(cap.box)+1)+' of 3. Tap to focus, then Capture. / Foto '+(firstEmpty(cap.box)+1)+' de 3.';
   }
+  const ret=$('#camRet'); if(ret) ret.style.display = cap.box? 'none':'block';
 }
 function renderBar(){ const bar=$('#camBar'); if(!bar||!cap) return; const c=shotCount();
   if(c===3){ bar.innerHTML='<button class="cam-done" id="camDone">Done / Listo</button>'; $('#camDone').onclick=closeBox; return; }
   const n=cap.box? firstEmpty(cap.box)+1 : 1;
-  const label = (c===0) ? 'Take barcode photo ① / Foto del código' : ('Take photo '+n+' / Tomar foto '+n);
-  bar.innerHTML='<button class="cam-shoot" id="shootBtn">'
+  const label = (c===0) ? 'Capture barcode ① / Capturar código' : ('Capture photo '+n+' / Capturar '+n);
+  bar.innerHTML='<button class="cam-shoot" id="capBtn">'
     +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>'
     +label+'</button>';
-  $('#shootBtn').onclick=shootNext;
+  $('#capBtn').onclick=capture;
 }
 async function assignFirst(hit,cv){
   const comp=await canvasToPhoto(cv,0.8);
@@ -426,7 +487,7 @@ async function assignFirst(hit,cv){
   beep(); if(navigator.vibrate) try{navigator.vibrate(120);}catch(e){}
   renderStrip(); updateHead();
 }
-function closeBox(){ const ov=$('#overlay'); if(ov) ov.remove(); cap=null; render(); }
+function closeBox(){ if(stream){ try{stream.getTracks().forEach(t=>t.stop());}catch(e){} stream=null; } const ov=$('#overlay'); if(ov) ov.remove(); cap=null; render(); }
 
 /* photo viewer (retake only during active capture) */
 function openViewer(b,slot,allowRetake){ const u=pURL(b.photos[slot]); if(!u) return;
@@ -589,29 +650,6 @@ function beep(){ try{ audioCtx=audioCtx||new (window.AudioContext||window.webkit
 
 /* ---------- events ---------- */
 $('#newBoxBtn').addEventListener('click',startNewBox);
-$('#camInput').addEventListener('change', async e=>{
-  const file=e.target.files&&e.target.files[0]; if(!file||!cap) return;
-  busy=true; const hint=$('#camHint'); const prev=hint?hint.textContent:''; if(hint) hint.textContent='Reading… / Leyendo…';
-  try{
-    if(!cap.box){                                    // barcode photo ① → identify
-      const cvD=await fileToCanvas(file,1600);
-      const text=await decodeCanvas(cvD); const hit=text?matchBox(text):null;
-      if(!hit){ toast(text?('Not in list / No en la lista: '+String(text).replace(/\s+/g,'').slice(-9)):'No barcode found — retake the barcode / Sin código',true);
-        if(hint) hint.textContent=prev; busy=false; return; }
-      if(isDone(hit)){ if(hint) hint.textContent=prev; busy=false;
-        confirmModal('Already done / Ya completada', fmtId(hit.last9)+' already has 3 photos. Retake? / ¿Repetir?','Retake / Repetir',true,async()=>{
-          for(const p of hit.photos) pDrop(p); hit.photos=[null,null,null]; try{await dbPut(hit);}catch(e){} await assignFirst(hit,cvD); }); return; }
-      await assignFirst(hit,cvD);
-    } else {                                         // photos ② ③ (higher quality)
-      const slot=firstEmpty(cap.box); if(slot<0){ busy=false; return; }
-      const cv=await fileToCanvas(file,2400); const comp=await canvasToPhoto(cv,0.85);
-      cap.photos[slot]={blob:comp.blob,w:comp.w,h:comp.h,ts:Date.now()}; cap.box.photos[slot]=cap.photos[slot];
-      try{await dbPut(cap.box);}catch(e){} renderStrip(); updateHead();
-      if(isDone(cap.box)) toast('✓ '+fmtId(cap.box.last9)+' — done / listo');
-    }
-  }catch(err){ toast('Photo failed / Fallo de foto',true); if(hint) hint.textContent=prev; }
-  busy=false;
-});
 $('#pdfBtn').addEventListener('click',makePDF);
 $('#setBtn').addEventListener('click',openSettings);
 $('#main').addEventListener('click',e=>{
